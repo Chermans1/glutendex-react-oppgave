@@ -1,3 +1,4 @@
+import FallbackNotice from "../components/FallbackNotice";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import BookCard from "../components/BookCard";
@@ -8,6 +9,7 @@ function Category() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [fallback, setFallback] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -21,6 +23,7 @@ function Category() {
     async function fetchBooks() {
       setLoading(true);
       setError("");
+      setFallback(false);
       setBooks([]);
 
       try {
@@ -29,11 +32,12 @@ function Category() {
           { signal: controller.signal },
         );
 
-        if (!response.ok) {
-          throw new Error("Kunne ikke hente bøker i denne kategorien.");
-        }
-
         const data = await response.json();
+        if (!active || controller.signal.aborted) return;
+        setFallback(data?.fallback === true);
+        if (!response.ok) {
+          throw new Error(data?.error || "Kunne ikke hente bøker i denne kategorien.");
+        }
 
         if (!Array.isArray(data?.results)) {
           throw new Error("Gutendex returnerte ugyldige bokdata.");
@@ -64,6 +68,8 @@ function Category() {
   return (
     <section>
       <h2>Kategori: {category.charAt(0).toUpperCase() + category.slice(1)}</h2>
+
+      {!loading && <FallbackNotice show={fallback} />}
 
       {loading && <p>Laster bøker...</p>}
 

@@ -1,3 +1,4 @@
+import FallbackNotice from "../components/FallbackNotice";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import BookCard from "../components/BookCard";
@@ -12,6 +13,7 @@ function Home() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [fallback, setFallback] = useState(false);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
 
@@ -27,6 +29,7 @@ function Home() {
     async function fetchBooks() {
       setLoading(true);
       setError("");
+      setFallback(false);
 
       try {
         const response = await fetch(
@@ -34,11 +37,12 @@ function Home() {
           { signal: controller.signal },
         );
 
-        if (!response.ok) {
-          throw new Error("Kunne ikke hente bøker.");
-        }
-
         const data = await response.json();
+        if (!active || controller.signal.aborted) return;
+        setFallback(data?.fallback === true);
+        if (!response.ok) {
+          throw new Error(data?.error || "Kunne ikke hente bøker.");
+        }
 
         if (!Array.isArray(data?.results)) {
           throw new Error("Gutendex returnerte ugyldige bokdata.");
@@ -82,11 +86,17 @@ function Home() {
   }
 
   if (error) {
-    return <p>Feil: {error}</p>;
+    return (
+      <>
+        <FallbackNotice show={fallback} />
+        <p>Feil: {error}</p>
+      </>
+    );
   }
 
   return (
     <section>
+      <FallbackNotice show={fallback} />
       <h2>{search ? `Søkeresultater for "${search}"` : "Utforsk bøker"}</h2>
 
       {books.length === 0 ? (

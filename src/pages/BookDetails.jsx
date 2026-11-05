@@ -1,3 +1,4 @@
+import FallbackNotice from "../components/FallbackNotice";
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useFavorites } from "../context/useFavorites";
@@ -9,6 +10,7 @@ function BookDetails() {
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [fallback, setFallback] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -22,6 +24,7 @@ function BookDetails() {
     async function fetchBook() {
       setLoading(true);
       setError("");
+      setFallback(false);
       setBook(null);
 
       try {
@@ -29,11 +32,12 @@ function BookDetails() {
           signal: controller.signal,
         });
 
-        if (!response.ok) {
-          throw new Error("Kunne ikke hente informasjon om boken.");
-        }
-
         const data = await response.json();
+        if (!active || controller.signal.aborted) return;
+        setFallback(data?.fallback === true);
+        if (!response.ok) {
+          throw new Error(data?.error || "Kunne ikke hente informasjon om boken.");
+        }
 
         if (!data || !Number.isInteger(data.id) || typeof data.title !== "string") {
           throw new Error("Gutendex returnerte ugyldige bokdata.");
@@ -65,7 +69,12 @@ function BookDetails() {
   }
 
   if (error) {
-    return <p>Feil: {error}</p>;
+    return (
+      <>
+        <FallbackNotice show={fallback} />
+        <p>Feil: {error}</p>
+      </>
+    );
   }
 
   if (!book) {
@@ -87,6 +96,7 @@ function BookDetails() {
 
   return (
     <section className="book-details">
+      <FallbackNotice show={fallback} />
       <Link to="/">← Tilbake til forsiden</Link>
 
       <div className="book-details-content">
