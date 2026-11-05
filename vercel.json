@@ -1,0 +1,11 @@
+{
+  "functions": { "api/books.js": { "maxDuration": 30 } },
+  "rewrites": [
+    { "source": "/api/books/", "destination": "/api/books" },
+    { "source": "/api/books/:id", "destination": "/api/books?id=:id" },
+    { "source": "/api/books/:id/", "destination": "/api/books?id=:id" },
+    { "source": "/favorites", "destination": "/index.html" },
+    { "source": "/book/:id", "destination": "/index.html" },
+    { "source": "/category/:category", "destination": "/index.html" }
+  ]
+}
